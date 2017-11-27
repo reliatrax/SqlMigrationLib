@@ -7,24 +7,43 @@ using System.Threading.Tasks;
 
 namespace SqlMigrationLib.DbTests
 {
-    class DBUtils
+    static class DBUtils
     {
+        static string connectionStringBase = @"Data Source=.\sqlexpress; Integrated Security=SSPI;";
+
+        static string testDBName = "SqlMigrationLibTestDB";
+
+        static SqlRunner GetSqlRunner(string databaseName = null )
+        {
+            if (string.IsNullOrEmpty(databaseName))
+                databaseName = testDBName;
+
+            string constring = connectionStringBase + $" DataBase={databaseName};";
+
+            return new SqlRunner(constring);
+        }
+
         public static void SetupDatabase()
         {
-            string connectionString = @"Data Source=.\sqlexpress; DataBase=SqlMigrationLibTestDB; Integrated Security =SSPI;";
+            bool createdDB = false;
 
-            string dbname = "SqlMigrationLibTestDB";
-
-            // Create the database
-            using (SqlRunner r = new SqlRunner(connectionString))
+            // Create the database -- we need to connect using "master" here since our test DB may not exist
+            using (SqlRunner r = GetSqlRunner("master"))
             {
                 // Check if the database already exists
-                string existsquery = string.Format(@"SELECT count(*) FROM master.dbo.sysdatabases WHERE ('[' + name + ']' = '{0}' OR name = '{0}')", dbname);
+                string existsquery = string.Format(@"SELECT count(*) FROM master.dbo.sysdatabases WHERE ('[' + name + ']' = '{0}' OR name = '{0}')", testDBName);
                 int dbCount = r.ExecuteScalar<int>(existsquery);
 
                 if (dbCount == 0)
-                    InitializeDataBase(r, dbname);  // create the dB & add our table
-                else
+                {
+                    InitializeDataBase(r, testDBName);  // create the dB & add our table
+                    createdDB = true;
+                }
+            }
+
+            using (SqlRunner r = GetSqlRunner())
+            {
+                if (!createdDB)
                     CleanupData(r);                 // clear out all old data
 
                 // Seed it with some data
