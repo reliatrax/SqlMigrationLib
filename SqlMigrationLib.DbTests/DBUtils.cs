@@ -13,7 +13,7 @@ namespace SqlMigrationLib.DbTests
 
         static string testDBName = "SqlMigrationLibTestDB";
 
-        static SqlRunner GetSqlRunner(string databaseName = null )
+        public static SqlRunner GetSqlRunner(string databaseName = null )
         {
             if (string.IsNullOrEmpty(databaseName))
                 databaseName = testDBName;
@@ -25,8 +25,6 @@ namespace SqlMigrationLib.DbTests
 
         public static void SetupDatabase()
         {
-            bool createdDB = false;
-
             // Create the database -- we need to connect using "master" here since our test DB may not exist
             using (SqlRunner r = GetSqlRunner("master"))
             {
@@ -35,19 +33,7 @@ namespace SqlMigrationLib.DbTests
                 int dbCount = r.ExecuteScalar<int>(existsquery);
 
                 if (dbCount == 0)
-                {
                     InitializeDataBase(r, testDBName);  // create the dB & add our table
-                    createdDB = true;
-                }
-            }
-
-            using (SqlRunner r = GetSqlRunner())
-            {
-                if (!createdDB)
-                    CleanupData(r);                 // clear out all old data
-
-                // Seed it with some data
-                AddMigrationRow(r, 100, DateTime.UtcNow);
             }
         }
 
@@ -81,7 +67,14 @@ namespace SqlMigrationLib.DbTests
                                         SIZE=4, FILEGROWTH=10%)", dbname, dataPath, logPath);
 
             r.ExecuteNonQuery(query);
+        }
 
+        public static void DropAndAddTables(SqlRunner r)
+        {
+            string query = @"DROP TABLE IF EXISTS dbo.Migrations;
+                             DROP TABLE IF EXISTS dbo.Messages;";
+
+            r.ExecuteNonQuery(query);
 
             // Add the migration history table
             query = @"CREATE TABLE dbo.Migrations (
@@ -100,14 +93,6 @@ namespace SqlMigrationLib.DbTests
                                   );";
 
             r.ExecuteNonQuery(query);
-        }
-
-        public static void CleanupData(SqlRunner r)
-        {
-            string sql = @"delete from dbo.Migrations;
-                           delete from dbo.Messages;";
-
-            r.ExecuteNonQuery(sql);
         }
     }
 }

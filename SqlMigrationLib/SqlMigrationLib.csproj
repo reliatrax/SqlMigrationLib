@@ -41,7 +41,9 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="CommentStripper.cs" />
+    <Compile Include="ISqlMigrationUtils.cs" />
     <Compile Include="SqlBatchSplitter.cs" />
+    <Compile Include="SqlMigrationLibConfig.cs" />
     <Compile Include="SqlRunner.cs" />
     <Compile Include="MigrationRunner.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

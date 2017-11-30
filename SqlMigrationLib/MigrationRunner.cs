@@ -7,29 +7,12 @@ using System.Threading.Tasks;
 
 namespace SqlMigrationLib
 {
-    public interface ISqlMigrationUtils<TVer>
-    {
-        TVer[] ListAvailableMigrationScripts( TVer currentDBVersion, TVer requiredVersion);
-
-        string ReadMigrationScript( TVer migrationName );
-
-        int CompareVersions(TVer a, TVer b);
-    }
-
-    public class SqlUpdateConfig
-    {
-        public string ConnectionString { get; set; }
-
-        public Func<SqlQueryWithParams> GetDBVersionQuery { get; set; }
-        public Func<SqlQueryWithParams> SetDBVersionQuery { get; set; }
-    }
-
     public class MigrationRunner<TVer>
     {
         ISqlMigrationUtils<TVer> _migrationUtils;
-        SqlUpdateConfig _config;
+        SqlMigrationLibConfig _config;
 
-        public MigrationRunner( SqlUpdateConfig config, ISqlMigrationUtils<TVer> migrationUtils )
+        public MigrationRunner( SqlMigrationLibConfig config, ISqlMigrationUtils<TVer> migrationUtils )
         {
             _config = config;
             _migrationUtils = migrationUtils;
@@ -40,7 +23,7 @@ namespace SqlMigrationLib
             using (SqlRunner runner = new SqlRunner(_config.ConnectionString))
             {
                 // Get the current database version
-                SqlQueryWithParams query = _config.GetDBVersionQuery();
+                SqlQueryWithParams query = _migrationUtils.GetDBVersionQuery();
                 TVer currentDBVersion = runner.ExecuteScalar<TVer>(query);
 
                 // If the current version is >= the required version, then we have nothing to do
@@ -110,20 +93,13 @@ namespace SqlMigrationLib
 
         private void UpdateDBVersion(SqlRunner runner, TVer ver)
         {
+            SqlQueryWithParams query = _migrationUtils.SetDBVersionQuery(ver);     // call the user-supplied delegate to get the query
+
             // The set version query is not required.  The migration script itself may set the version
-            if (_config.SetDBVersionQuery == null)
+            if (query == null)
                 return;
 
-            SqlQueryWithParams query = _config.SetDBVersionQuery();     // call the user-supplied delegate to get the query
-
-            // Clone the update query (since we will be changing the parameters)
-            List<SqlParm> parms = new List<SqlParm>();
-            if (query.Parameters != null)
-                parms.AddRange(query.Parameters);
-            parms.Add(new SqlParm("DBVersion", ver));      // our magic parameter to set the version
-
-            SqlQueryWithParams updateDBVer = new SqlQueryWithParams(query.Query, parms.ToArray());
-            runner.ExecuteNonQuery(updateDBVer);
+            runner.ExecuteNonQuery(query);
         }
     }
 }
