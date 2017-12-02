@@ -59,6 +59,26 @@ namespace SqlMigrationLib.DbTests
 
             return new SqlQueryWithParams(@"INSERT INTO dbo.Migrations(MigrationID,UpdateUTC) VALUES(@p1,@p2)", new SqlParm("p1", ver), new SqlParm("p2", TimeVersionLastSet));
         }
+
+        // Logging
+
+        List<string> informationLog = new List<string>();
+
+        public IReadOnlyList<string> InformationLog => informationLog.AsReadOnly();
+
+        public string LastErrorMessage { get; private set; }
+
+        public void LogError(Exception e)
+        {
+            LastErrorMessage = e.Message;       // "Log" the error message
+        }
+
+        public void LogInformation(string message, params object[] args)
+        {
+            string fmtd = string.Format(message, args);
+
+            informationLog.Add(fmtd);
+        }
     }
 
 }

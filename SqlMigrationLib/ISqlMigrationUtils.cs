@@ -1,4 +1,6 @@
-﻿namespace SqlMigrationLib
+﻿using System;
+
+namespace SqlMigrationLib
 {
     public interface ISqlMigrationUtils<TVer>
     {
@@ -11,5 +13,9 @@
         SqlQueryWithParams GetDBVersionQuery();
 
         SqlQueryWithParams SetDBVersionQuery(TVer ver);
+
+        void LogInformation(string message, params object[] args);
+
+        void LogError(Exception e);
     }
 }

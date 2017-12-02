@@ -41,41 +41,51 @@ namespace SqlMigrationLib
 
                     try
                     {
+                        _migrationUtils.LogInformation("Starting Migration {0}", migrationVer);
+
                         string sql = _migrationUtils.ReadMigrationScript(migrationVer);
 
                         // Begin transaction
+                        _migrationUtils.LogInformation("Beginning Transaction {0}", transname);
                         runner.ExecuteNonQuery(string.Format("BEGIN TRANSACTION {0}", transname));      // DDL does not support SQL parameters
                         shouldRollback = true;
 
                         // Run the migration!
+                        _migrationUtils.LogInformation("Running Migration {0}", migrationVer);
                         RunMigration(runner, sql);
 
                         // Update the DB version if required (the migration script itself may do this)
+                        _migrationUtils.LogInformation("Updating Database version to {0}", migrationVer);
                         UpdateDBVersion(runner, migrationVer);
 
+                        _migrationUtils.LogInformation("Commiting transaction {0}", transname);
                         runner.ExecuteNonQuery(string.Format("COMMIT TRANSACTION {0}", transname));      // DDL does not support SQL parameters
+
+                        _migrationUtils.LogInformation("Finished Migration {0}", migrationVer);
                     }
                     catch (Exception e)
                     {
-                        // TODO: log!
+                        _migrationUtils.LogError(e);
 
                         if (shouldRollback)
-                            RollbackTransaction(runner, transname);
+                            RollbackTransaction(runner, _migrationUtils, transname);
                         return;     // Abort after the first failure
                     }
                 }
             }
         }
 
-        private static void RollbackTransaction(SqlRunner runner, string transname)
+        private static void RollbackTransaction(SqlRunner runner, ISqlMigrationUtils<TVer> utils, string transname)
         {
             try
             {
+                utils.LogInformation("Rolling back transaction {0}", transname);
                 runner.ExecuteNonQuery(new SqlQueryWithParams("ROLLBACK TRANSACTION {name}", new SqlParm("name", transname)));
+                utils.LogInformation("Rolled back transaction {0} successfully!", transname);
             }
             catch (Exception ex)
             {
-                // #TODO - log critical error
+                utils.LogError(ex);
             }
         }
 

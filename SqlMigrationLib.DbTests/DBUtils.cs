@@ -4,27 +4,40 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Configuration;
 
 namespace SqlMigrationLib.DbTests
 {
     static class DBUtils
     {
-        static string connectionStringBase = @"Data Source=.\sqlexpress; Integrated Security=SSPI;";
+        public static string GetTestDataBaseName()
+        {
+            return ConfigurationManager.AppSettings["dbname"];
+        }
 
-        static string testDBName = "SqlMigrationLibTestDB";
+        public static string GetConnectionString(string databaseName = null)
+        {
+            string connectionStringBase = ConfigurationManager.AppSettings["constringbase"];
+
+            if (string.IsNullOrEmpty(databaseName))
+                databaseName = GetTestDataBaseName();
+
+            string constring = connectionStringBase + $" DataBase={databaseName};";
+
+            return constring;
+        }
 
         public static SqlRunner GetSqlRunner(string databaseName = null )
         {
-            if (string.IsNullOrEmpty(databaseName))
-                databaseName = testDBName;
-
-            string constring = connectionStringBase + $" DataBase={databaseName};";
+            string constring = GetConnectionString(databaseName);
 
             return new SqlRunner(constring);
         }
 
         public static void SetupDatabase()
         {
+            string testDBName = GetTestDataBaseName();
+
             // Create the database -- we need to connect using "master" here since our test DB may not exist
             using (SqlRunner r = GetSqlRunner("master"))
             {

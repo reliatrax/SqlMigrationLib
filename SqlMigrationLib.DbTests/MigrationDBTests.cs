@@ -15,7 +15,7 @@ namespace SqlMigrationLib.DbTests
 {
     [TestFixture]
     [Category("IntegrationTest")]
-    public class MigrationTests
+    public class MigrationDBTests
     {
         SqlMigrationLibConfig config;
 
@@ -24,7 +24,7 @@ namespace SqlMigrationLib.DbTests
         {
             config = new SqlMigrationLibConfig
             {
-                ConnectionString = @"Data Source =.\sqlexpress; DataBase = SqlMigrationLibTestDB; Integrated Security = SSPI;",
+                ConnectionString = DBUtils.GetConnectionString()        // gets a connection string to our test database
             };
 
             using (SqlRunner r = DBUtils.GetSqlRunner())

@@ -45,6 +45,7 @@
       <HintPath>..\packages\NUnit.3.6.1\lib\net45\nunit.framework.dll</HintPath>
     </Reference>
     <Reference Include="System" />
+    <Reference Include="System.Configuration" />
     <Reference Include="System.Data" />
     <Reference Include="System.Xml" />
     <Reference Include="System.Xml.Linq" />
@@ -55,7 +56,7 @@
     <Compile Include="SetupFicture.cs" />
     <Compile Include="DBUtils.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="MigrationTests.cs" />
+    <Compile Include="MigrationDBTests.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
