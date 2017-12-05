@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 namespace SqlMigrationLib.DbTests
 {
     [SetUpFixture]      // marks this class as our one-time setup class to be run before any other tests from this namespace
-    public class SetupFicture
+    public class SetupFixture
     {
         [OneTimeSetUp]
         public void SetupDB()

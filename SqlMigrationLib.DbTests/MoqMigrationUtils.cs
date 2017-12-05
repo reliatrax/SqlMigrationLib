@@ -12,6 +12,18 @@ namespace SqlMigrationLib.DbTests
         public string MigrationSql { get; set; }
     }
 
+    public class ExecutedBatch
+    {
+        public string ExecutedSql { get; private set; }
+        public int RowsAffected { get; private set; }
+
+        public ExecutedBatch( string executesSql, int rowsAffected )
+        {
+            ExecutedSql = executesSql;
+            RowsAffected = rowsAffected;
+        }
+    }
+
     public class MoqMigrationUtils : ISqlMigrationUtils<int>
     {
         public DateTime TimeVersionLastSet { get; private set; }
@@ -23,19 +35,9 @@ namespace SqlMigrationLib.DbTests
             Migrations = migrations.ToArray();
         }
 
-        public int CompareVersions(int a, int b)
+        public int[] ListRequiredMigrationScripts(int currentDBVersion, int requiredVersion)
         {
-            if (a < b)
-                return -1;
-            else if (a > b)
-                return 1;
-            else
-                return 0;
-        }
-
-        public int[] ListAvailableMigrationScripts(int currentDBVersion, int requiredVersion)
-        {
-            return Migrations.Where(x => CompareVersions(x.MigrationID, currentDBVersion) > 0 && CompareVersions(x.MigrationID, requiredVersion) <= 0)
+            return Migrations.Where(x => x.MigrationID > currentDBVersion && x.MigrationID <= requiredVersion)
                              .Select(x => x.MigrationID)
                              .ToArray();
         }
@@ -47,8 +49,6 @@ namespace SqlMigrationLib.DbTests
 
         public SqlQueryWithParams GetDBVersionQuery()
         {
-//                ConnectionString = @"Data Source =.\sqlexpress; DataBase = SqlMigrationLibTestDB; Integrated Security = SSPI;",
-
             return new SqlQueryWithParams(@"SELECT TOP 1 MigrationID FROM dbo.Migrations ORDER BY MigrationID DESC");
         }
 
@@ -66,19 +66,30 @@ namespace SqlMigrationLib.DbTests
 
         public IReadOnlyList<string> InformationLog => informationLog.AsReadOnly();
 
-        public string LastErrorMessage { get; private set; }
-
-        public void LogError(Exception e)
-        {
-            LastErrorMessage = e.Message;       // "Log" the error message
-        }
-
         public void LogInformation(string message, params object[] args)
         {
             string fmtd = string.Format(message, args);
 
             informationLog.Add(fmtd);
         }
-    }
 
+        // Log Executed SQL Batches
+
+        List<ExecutedBatch> sqlLog = new List<ExecutedBatch>();
+        public IReadOnlyList<ExecutedBatch> ExecutedBatches => sqlLog.AsReadOnly();
+
+        public void LogSqlBatch(string sql, int rowsAffected)
+        {
+            sqlLog.Add(new ExecutedBatch(sql, rowsAffected));
+        }
+
+        // Log Errors
+
+        public string LastErrorMessage { get; private set; }
+
+        public void LogError(Exception e, string message, params object[] args)
+        {
+            LastErrorMessage = e.Message;       // "Log" the error message
+        }
+    }
 }

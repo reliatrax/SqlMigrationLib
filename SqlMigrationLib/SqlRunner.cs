@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 
 using System.Data.SqlClient;
+using System.Data;
 
 namespace SqlMigrationLib
 {
@@ -32,81 +33,47 @@ namespace SqlMigrationLib
     }
 
 
-    public class SqlRunner : IDisposable
+    // Helper to build / execute DbCommands
+    public static class SqlRunner
     {
-        SqlConnection sqlConx = null;
-
-        public SqlRunner( string connectionString )
+        static IDbCommand BuildDbCommand(IDbConnection db, SqlQueryWithParams q)
         {
-            sqlConx = new SqlConnection(connectionString);
-            sqlConx.Open();
-        }
-
-        static SqlCommand BuildSqlCommand(SqlConnection sqlConx, SqlQueryWithParams q)
-        {
-            SqlCommand sqlcmd = new SqlCommand(q.Query, sqlConx);
+            IDbCommand cmd = db.CreateCommand();
+            cmd.CommandText = q.Query;
 
             if (q.Parameters != null)
             {
                 foreach (var p in q.Parameters)
-                    sqlcmd.Parameters.AddWithValue(p.Name, p.Value);
+                {
+                    IDbDataParameter dbparm = cmd.CreateParameter();
+                    dbparm.ParameterName = p.Name;
+                    dbparm.Value = p.Value;
+                    cmd.Parameters.Add(dbparm);
+                }
             }
 
-            return sqlcmd;
+            return cmd;
         }
 
-        public int ExecuteNonQuery(string query, params SqlParm[] parms)
+        public static int DbExecuteNonQuery( this IDbConnection db, string query, params SqlParm[] parms)
         {
             var qp = new SqlQueryWithParams(query, parms);
 
-            return ExecuteNonQuery(qp);
+            return db.DbExecuteNonQuery(qp);
         }
 
-        public int ExecuteNonQuery(SqlQueryWithParams qp)
+        public static int DbExecuteNonQuery(this IDbConnection db, SqlQueryWithParams qp)
         {
-            SqlCommand cmd = BuildSqlCommand(sqlConx, qp);
+            IDbCommand cmd = BuildDbCommand(db, qp);
 
             return cmd.ExecuteNonQuery();
         }
 
-        public T ExecuteScalar<T>(string query, params SqlParm[] parms)
+        public static T DbExecuteScalar<T>(this IDbConnection db, SqlQueryWithParams qp)
         {
-            var qp = new SqlQueryWithParams(query, parms);
-
-            return ExecuteScalar<T>(qp);
-        }
-
-        public T ExecuteScalar<T>(SqlQueryWithParams qp)
-        {
-            SqlCommand cmd = BuildSqlCommand(sqlConx, qp);
+            IDbCommand cmd = BuildDbCommand(db, qp);
 
             return (T)cmd.ExecuteScalar();
         }
-
-        #region IDisposable Support
-
-        private bool disposedValue = false; // To detect redundant calls
-
-        protected virtual void Dispose(bool disposing)
-        {
-            if (!disposedValue)
-            {
-                if (disposing && sqlConx != null)
-                {
-                    sqlConx.Close();
-                    sqlConx.Dispose();
-                }
-
-                disposedValue = true;
-            }
-        }
-
-        // This code added to correctly implement the disposable pattern.
-        public void Dispose()
-        {
-            // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
-            Dispose(true);
-        }
-        #endregion
     }
 }

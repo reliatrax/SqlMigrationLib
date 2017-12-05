@@ -5,6 +5,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Configuration;
+using System.Data;
+using System.Data.SqlClient;
+using Dapper;
 
 namespace SqlMigrationLib.DbTests
 {
@@ -27,42 +30,48 @@ namespace SqlMigrationLib.DbTests
             return constring;
         }
 
-        public static SqlRunner GetSqlRunner(string databaseName = null )
-        {
-            string constring = GetConnectionString(databaseName);
-
-            return new SqlRunner(constring);
-        }
-
         public static void SetupDatabase()
         {
             string testDBName = GetTestDataBaseName();
 
             // Create the database -- we need to connect using "master" here since our test DB may not exist
-            using (SqlRunner r = GetSqlRunner("master"))
+            using (IDbConnection db = new SqlConnection(GetConnectionString("master")))
             {
+                db.Open();
+
                 // Check if the database already exists
                 string existsquery = string.Format(@"SELECT count(*) FROM master.dbo.sysdatabases WHERE ('[' + name + ']' = '{0}' OR name = '{0}')", testDBName);
-                int dbCount = r.ExecuteScalar<int>(existsquery);
+                int dbCount = db.ExecuteScalar<int>(existsquery);
 
                 if (dbCount == 0)
-                    InitializeDataBase(r, testDBName);  // create the dB & add our table
+                    InitializeDataBase(db, testDBName);  // create the dB & add our table
+
+                db.Close();
             }
         }
 
-        public static void AddMigrationRow(SqlRunner r, int migrationID, DateTime updateUtc)
+        public static void AddMigrationRow(IDbConnection db, int migrationID, DateTime updateUtc)
         {
             string sql = @"INSERT INTO dbo.Migrations(MigrationID, UpdateUTC) VALUES(@migrationID, @updateUTC)";
 
-            r.ExecuteNonQuery(sql, new SqlParm("@migrationID", migrationID), new SqlParm("@updateUTC", updateUtc));
+            db.Execute(sql, new { migrationID = migrationID, updateUTC = updateUtc });
         }
 
-        public static void InitializeDataBase(SqlRunner r, string dbname)
+
+        public static void AddMessage(IDbConnection db, string message)
+        {
+            string sql = @"INSERT INTO dbo.Messages(MessageText) VALUES(@p1)";
+
+            db.Execute(sql, new { p1 = message });
+        }
+
+
+        public static void InitializeDataBase(IDbConnection db, string dbname)
         {
             string programData = Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData);
 
             // Create our directory
-            string path = Path.Combine(programData, "SqlMigrationLibDbTests");
+            string path = Path.Combine(programData, "CCS", "SqlMigrationLibDbTests");
             if (Directory.Exists(path) == false)
                 Directory.CreateDirectory(path);
 
@@ -79,15 +88,15 @@ namespace SqlMigrationLib.DbTests
                                         FILENAME='{2}',
                                         SIZE=4, FILEGROWTH=10%)", dbname, dataPath, logPath);
 
-            r.ExecuteNonQuery(query);
+            db.Execute(query);
         }
 
-        public static void DropAndAddTables(SqlRunner r)
+        public static void DropAndAddTables(IDbConnection db)
         {
             string query = @"DROP TABLE IF EXISTS dbo.Migrations;
                              DROP TABLE IF EXISTS dbo.Messages;";
 
-            r.ExecuteNonQuery(query);
+            db.Execute(query);
 
             // Add the migration history table
             query = @"CREATE TABLE dbo.Migrations (
@@ -96,7 +105,7 @@ namespace SqlMigrationLib.DbTests
                                     CONSTRAINT PK_MigrationID PRIMARY KEY CLUSTERED  (MigrationID ASC)
                                   );";
 
-            r.ExecuteNonQuery(query);
+            db.Execute(query);
 
             // Add a messages table
             query = @"CREATE TABLE dbo.Messages (
@@ -105,7 +114,7 @@ namespace SqlMigrationLib.DbTests
                                     CONSTRAINT PK_MessageID PRIMARY KEY CLUSTERED  (MessageID ASC)
                                   );";
 
-            r.ExecuteNonQuery(query);
+            db.Execute(query);
         }
     }
 }
