@@ -194,16 +194,14 @@ namespace SqlMigrationLib.DbTests
                 runner.BringToVersion(101);
 
                 // Assert
-                utils.ExecutedBatches.Should().HaveCount(6);        // Begin Transaction + 3 batches + Update Version + End Transaction
+                utils.ExecutedBatches.Should().HaveCount(4);        // Begin Transaction + 3 batches + Update Version + End Transaction
 
-                utils.ExecutedBatches[0].ExecutedSql.Trim().Should().StartWithEquivalent("BEGIN TRANSACTION");          // use startwith since transaction ID is unknown
-                utils.ExecutedBatches[1].ExecutedSql.Should().Be("INSERT INTO dbo.Messages(MessageText) VALUES('Batch 1');");
-                utils.ExecutedBatches[2].ExecutedSql.Should().Be("INSERT INTO dbo.Messages(MessageText) VALUES('Batch 2');");
-                utils.ExecutedBatches[3].ExecutedSql.Should().Be("Update dbo.Messages set MessageText = 'updated message'");
-                utils.ExecutedBatches[4].ExecutedSql.Should().StartWithEquivalent("INSERT INTO dbo.Migrations(MigrationID,UpdateUTC) VALUES(@p1,@p2)\nPARAMETERS:\n   p1: 101");
-                utils.ExecutedBatches[5].ExecutedSql.Trim().Should().StartWithEquivalent("COMMIT TRANSACTION");
+                utils.ExecutedBatches[0].ExecutedSql.Should().Be("INSERT INTO dbo.Messages(MessageText) VALUES('Batch 1');");
+                utils.ExecutedBatches[1].ExecutedSql.Should().Be("INSERT INTO dbo.Messages(MessageText) VALUES('Batch 2');");
+                utils.ExecutedBatches[2].ExecutedSql.Should().Be("Update dbo.Messages set MessageText = 'updated message'");
+                utils.ExecutedBatches[3].ExecutedSql.Should().StartWithEquivalent("INSERT INTO dbo.Migrations(MigrationID,UpdateUTC) VALUES(@p1,@p2)\nPARAMETERS:\n   p1: 101");
 
-                utils.ExecutedBatches.Select(x => x.RowsAffected).ShouldBeEquivalentTo(new int[] { -1, 1, 1, 2, 1, -1 }, options => options.WithStrictOrdering());
+                utils.ExecutedBatches.Select(x => x.RowsAffected).ShouldBeEquivalentTo(new int[] { 1, 1, 2, 1 }, options => options.WithStrictOrdering());
             }
         }
     }

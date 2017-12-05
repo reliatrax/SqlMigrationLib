@@ -67,62 +67,69 @@ namespace SqlMigrationLib
             // Run each migration script in turn
             foreach (TVer migrationVer in migrationVers)
             {
-                string transname = "T" + DateTime.Now.Ticks.ToString();     // a unique name
-                bool shouldRollback = false;
+                _migrationUtils.LogInformation("Starting Migration {0}", migrationVer);
+
+                IDbTransaction transaction;
+                string sql;
 
                 try
                 {
-                    _migrationUtils.LogInformation("Starting Migration {0}", migrationVer);
-
-                    string sql = _migrationUtils.ReadMigrationScript(migrationVer);
+                    // Read the Migration script
+                    sql = _migrationUtils.ReadMigrationScript(migrationVer);
 
                     // Begin transaction
-                    _migrationUtils.LogInformation("Beginning Transaction {0}", transname);
-                    Execute($"BEGIN TRANSACTION {transname}");      // DDL does not support SQL parameters
-                    shouldRollback = true;
+                    _migrationUtils.LogInformation("Beginning Transaction");
+                    transaction = _db.BeginTransaction();
+                }
+                catch (Exception e)
+                {
+                    _migrationUtils.LogError(e, "Exception encountered while running migration {0}: {1}", migrationVer, e.Message);
+                    return;
+                }
 
+                try { 
                     // Run the migration!
                     _migrationUtils.LogInformation("Running Migration {0}", migrationVer);
-                    RunMigration(sql);
+                    RunMigration(transaction, sql);
 
                     // Update the DB version if required (the migration script itself may do this)
                     _migrationUtils.LogInformation("Updating Database version to {0}", migrationVer);
-                    UpdateDBVersion(migrationVer);
+                    UpdateDBVersion(transaction, migrationVer);
 
-                    _migrationUtils.LogInformation("Commiting transaction {0}", transname);
-                    Execute($"COMMIT TRANSACTION {transname}");      // DDL does not support SQL parameters
-
-                    _migrationUtils.LogInformation("Finished Migration {0}", migrationVer);
+                    _migrationUtils.LogInformation("Commiting transaction");
+                    transaction.Commit();
                 }
                 catch (Exception e)
                 {
                     _migrationUtils.LogError(e, "Exception encountered while running migration {0}: {1}", migrationVer, e.Message);
 
-                    if (shouldRollback)
-                        RollbackTransaction(transname);
+                    RollbackTransaction(transaction);
+
                     return;     // Abort after the first failure
                 }
+
+                _migrationUtils.LogInformation("Finished Migration {0}", migrationVer);
             }
         }
 
-        private void RollbackTransaction(string transname)
+        private void RollbackTransaction(IDbTransaction transaction)
         {
             try
             {
-                _migrationUtils.LogInformation("Rolling back transaction {0}", transname);
+                _migrationUtils.LogInformation("Rolling back transaction");
 
-                Execute($"ROLLBACK TRANSACTION {transname}");            // DDL does not support SQL parameters
+                transaction.Rollback();
 
-                _migrationUtils.LogInformation("Rolled back transaction {0} successfully!", transname);
+                _migrationUtils.LogInformation("Rolled back transaction successfully!");
             }
             catch (Exception ex)
             {
-                _migrationUtils.LogError(ex, "Error rolling back transaction {0}: {1}", transname, ex.Message);
+                _migrationUtils.LogError(ex, "Error rolling back transaction: {0}", ex.Message);
             }
         }
 
 
-        private void RunMigration(string sql)
+        private void RunMigration(IDbTransaction transaction, string sql)
         {
             sql = CommentStripper.ProcessSql(sql);  // remove all comments, because they may contain the word "GO" in them which would confuse our splitter
 
@@ -134,11 +141,11 @@ namespace SqlMigrationLib
                 string s = batch.Replace("\r\n", "\n");
                 s = Regex.Replace(s, "\n+", "\n");
 
-                Execute(s);
+                Execute(transaction, s);
             }
         }
 
-        private void UpdateDBVersion(TVer ver)
+        private void UpdateDBVersion(IDbTransaction transaction, TVer ver)
         {
             SqlQueryWithParams query = _migrationUtils.SetDBVersionQuery(ver);     // call the user-supplied delegate to get the query
 
@@ -146,22 +153,24 @@ namespace SqlMigrationLib
             if (query == null)
                 return;
 
-            Execute(query);
+            Execute(transaction, query);
         }
 
         // Execute queries, logging the SQL and rows affected
-        private void Execute(string sql)
+        private void Execute(IDbTransaction transaction, string sql)
         {
             sql = sql.Trim();       // trimming makes the log messages clearer
 
-            int rowsAffected = _db.DbExecuteNonQuery(sql);
+            var qp = new SqlQueryWithParams(sql);
+
+            int rowsAffected = _db.DbExecuteNonQuery(qp, transaction );
 
             _migrationUtils.LogSqlBatch(sql, rowsAffected);
         }
 
-        private void Execute(SqlQueryWithParams sql)
+        private void Execute(IDbTransaction transaction, SqlQueryWithParams sql)
         {
-            int rowsAffected = _db.DbExecuteNonQuery(sql);
+            int rowsAffected = _db.DbExecuteNonQuery(sql, transaction);
 
             string logmsg = sql.Query + "\nPARAMETERS:\n" + string.Join("\n", sql.Parameters.Select(p => $"   {p.Name}: {p.Value}"));
             logmsg = logmsg.Trim();       // trimming makes the log messages clearer

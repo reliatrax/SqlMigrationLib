@@ -55,16 +55,12 @@ namespace SqlMigrationLib
             return cmd;
         }
 
-        public static int DbExecuteNonQuery( this IDbConnection db, string query, params SqlParm[] parms)
-        {
-            var qp = new SqlQueryWithParams(query, parms);
-
-            return db.DbExecuteNonQuery(qp);
-        }
-
-        public static int DbExecuteNonQuery(this IDbConnection db, SqlQueryWithParams qp)
+        public static int DbExecuteNonQuery(this IDbConnection db, SqlQueryWithParams qp, IDbTransaction transaction)
         {
             IDbCommand cmd = BuildDbCommand(db, qp);
+
+            if (transaction != null)
+                cmd.Transaction = transaction;
 
             return cmd.ExecuteNonQuery();
         }
