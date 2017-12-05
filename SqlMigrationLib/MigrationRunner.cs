@@ -28,11 +28,41 @@ namespace SqlMigrationLib
                 _db.Open();
 
             // Get the current database version
-            SqlQueryWithParams query = _migrationUtils.GetDBVersionQuery();
-            TVer currentDBVersion = _db.DbExecuteScalar<TVer>(query);
+            TVer currentDBVersion;
+
+            try
+            {
+                _migrationUtils.LogInformation("Getting current database version");
+                SqlQueryWithParams query = _migrationUtils.GetDBVersionQuery();
+                currentDBVersion = _db.DbExecuteScalar<TVer>(query);
+            }
+            catch ( Exception e)
+            {
+                _migrationUtils.LogError(e, "Exception in GetDBVersionQuery: {0}", e.Message);
+                return;
+            }
 
             // See if we have any migration scripts to run
-            TVer[] migrationVers = _migrationUtils.ListRequiredMigrationScripts(currentDBVersion, requiredVersion);
+            TVer[] migrationVers;
+
+            try
+            {
+                _migrationUtils.LogInformation("Calling ListRequiredMigrationScripts({0},{1})", currentDBVersion, requiredVersion);
+                migrationVers = _migrationUtils.ListRequiredMigrationScripts(currentDBVersion, requiredVersion);
+
+                if (migrationVers == null || migrationVers.Length == 0)
+                {
+                    _migrationUtils.LogInformation("No migrations required");
+                    return;
+                }
+
+                _migrationUtils.LogInformation("Migrations required: {0}", string.Join(", ", migrationVers) );
+            }
+            catch ( Exception e)
+            {
+                _migrationUtils.LogError(e, "Exception in ListRequiredMigrationScripts({0},{1})", currentDBVersion, requiredVersion);
+                return;
+            }
 
             // Run each migration script in turn
             foreach (TVer migrationVer in migrationVers)
@@ -66,7 +96,7 @@ namespace SqlMigrationLib
                 }
                 catch (Exception e)
                 {
-                    _migrationUtils.LogError(e, "Exception encountered while running migration: {0}", e.Message);
+                    _migrationUtils.LogError(e, "Exception encountered while running migration {0}: {1}", migrationVer, e.Message);
 
                     if (shouldRollback)
                         RollbackTransaction(transname);
