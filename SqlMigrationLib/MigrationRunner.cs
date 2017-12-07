@@ -27,6 +27,36 @@ namespace SqlMigrationLib
             if (originalState != ConnectionState.Open)
                 _db.Open();
 
+            try
+            {
+                BringToVersionWorker(requiredVersion);
+            }
+            catch( Exception e )
+            {
+                _migrationUtils.LogError(e, "Exception while executing BringToVersionWorker");
+
+                // Attempt to close the DB
+                if (originalState != ConnectionState.Open)
+                {
+                    TryCloseDbConnection();
+                }
+            }
+        }
+
+        private void TryCloseDbConnection()
+        {
+            try
+            {
+                _db.Close();
+            }
+            catch (Exception eclose)
+            {
+                _migrationUtils.LogError(eclose, "Exception while closing the DB connection after finished");
+            }
+        }
+
+        private void BringToVersionWorker(TVer requiredVersion)
+        {
             // Get the current database version
             TVer currentDBVersion;
 
@@ -52,7 +82,7 @@ namespace SqlMigrationLib
 
                 if (migrationVers == null || migrationVers.Length == 0)
                 {
-                    _migrationUtils.LogInformation("No migrations required");
+                    _migrationUtils.LogInformation("No migrations required from {0} to {1}", currentDBVersion, requiredVersion);
                     return;
                 }
 

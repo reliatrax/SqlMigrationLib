@@ -68,7 +68,7 @@ namespace SqlMigrationLib
                 new Edge('\0', State.A, (sb,c) => sb.Append("-" + c) )  // We got a '-' not followed by a '-', so append the '-' and whatever follows it
                 } },
             { State.S2, new Edge[] {
-                new Edge( '\n', State.A, null),
+                new Edge('\n', State.A, (sb,c) => sb.Append("\n") ),    // After we remove a single-line comment, we should still have a new line
                 new Edge('\0', State.S2, null)
             } },
         };

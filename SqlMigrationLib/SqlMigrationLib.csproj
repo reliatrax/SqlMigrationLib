@@ -13,7 +13,7 @@
     <TargetFrameworkVersion>v4.5.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <PackageId>SqlMigrationLib</PackageId>
-    <PackageVersion>0.6.0</PackageVersion>
+    <PackageVersion>0.7.0</PackageVersion>
     <Description>SqlMigrationLib</Description>
     <Authors>Canyon City Solutions</Authors>
     <Title>SQL Migration Helper Library</Title>
@@ -24,7 +24,7 @@
     </NuGetPackageImportStamp>
     <Copyright>Canyon City Solutions</Copyright>
     <TargetFrameworkProfile />
-    <PackageReleaseNotes>Refactored ISqlMigrationUtils interface</PackageReleaseNotes>
+    <PackageReleaseNotes>Improved transaction and error handling</PackageReleaseNotes>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>

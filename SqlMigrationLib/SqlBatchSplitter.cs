@@ -11,7 +11,10 @@ namespace SqlMigrationLib
     {
         static public string[] SplitBatches(string sql)
         {
-            string[] batches = Regex.Split(sql, @"^\s*GO\s*$", RegexOptions.Multiline | RegexOptions.IgnoreCase);
+            string[] batches = Regex.Split(sql, @"^\s*GO\s*$", RegexOptions.Multiline | RegexOptions.IgnoreCase);       // GO must appear on a line by itself, with no other punctuation
+
+            // Skip empty batches
+            batches = batches.Select(x => x.Trim()).Where(x => x.Length > 0).ToArray();
 
             return batches;
         }
