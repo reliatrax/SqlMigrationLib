@@ -9,14 +9,14 @@ namespace SqlMigrationLib.DbTests
     /// <summary>
     /// Model for database table dbo.Migrations
     /// </summary>
-    public class Migration
+    public class MigrationHistory
     {
         public int MigrationID { get; set; }
         public DateTime UpdateUTC { get; set; }
 
-        public Migration() { }
+        public MigrationHistory() { }
 
-        public Migration(int migrationID, DateTime updateUTC)
+        public MigrationHistory(int migrationID, DateTime updateUTC)
         {
             MigrationID = migrationID;
             UpdateUTC = updateUTC;

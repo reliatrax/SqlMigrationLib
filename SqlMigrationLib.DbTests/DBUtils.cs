@@ -52,7 +52,7 @@ namespace SqlMigrationLib.DbTests
 
         public static void AddMigrationRow(IDbConnection db, int migrationID, DateTime updateUtc)
         {
-            string sql = @"INSERT INTO dbo.Migrations(MigrationID, UpdateUTC) VALUES(@migrationID, @updateUTC)";
+            string sql = @"INSERT INTO dbo.MigrationHistories(MigrationID, UpdateUTC) VALUES(@migrationID, @updateUTC)";
 
             db.Execute(sql, new { migrationID = migrationID, updateUTC = updateUtc });
         }
@@ -93,13 +93,13 @@ namespace SqlMigrationLib.DbTests
 
         public static void DropAndAddTables(IDbConnection db)
         {
-            string query = @"DROP TABLE IF EXISTS dbo.Migrations;
+            string query = @"DROP TABLE IF EXISTS dbo.MigrationHistories;
                              DROP TABLE IF EXISTS dbo.Messages;";
 
             db.Execute(query);
 
             // Add the migration history table
-            query = @"CREATE TABLE dbo.Migrations (
+            query = @"CREATE TABLE dbo.MigrationHistories (
                                     MigrationID INT NOT NULL,		-- Primary key
                                     UpdateUTC DateTime NOT NULL,	-- UTC Time this migration was run
                                     CONSTRAINT PK_MigrationID PRIMARY KEY CLUSTERED  (MigrationID ASC)

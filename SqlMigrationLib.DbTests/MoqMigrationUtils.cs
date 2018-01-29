@@ -49,7 +49,7 @@ namespace SqlMigrationLib.DbTests
 
         public SqlQueryWithParams GetDBVersionQuery()
         {
-            return new SqlQueryWithParams(@"SELECT TOP 1 MigrationID FROM dbo.Migrations ORDER BY MigrationID DESC");
+            return new SqlQueryWithParams(@"SELECT TOP 1 MigrationID FROM dbo.MigrationHistories ORDER BY UpdateUTC DESC");
         }
 
         public SqlQueryWithParams SetDBVersionQuery(int ver)
@@ -57,7 +57,7 @@ namespace SqlMigrationLib.DbTests
             // Current time, truncated to the nearest second.  Sql has less precision on DateTime type, if we keep it to the nearest second, it round trips perfectly
             TimeVersionLastSet = DateTime.UtcNow.AddTicks(-1 * (DateTime.Now.Ticks % TimeSpan.TicksPerSecond));
 
-            return new SqlQueryWithParams(@"INSERT INTO dbo.Migrations(MigrationID,UpdateUTC) VALUES(@p1,@p2)", new SqlParm("p1", ver), new SqlParm("p2", TimeVersionLastSet));
+            return new SqlQueryWithParams(@"INSERT INTO dbo.MigrationHistories(MigrationID,UpdateUTC) VALUES(@p1,@p2)", new SqlParm("p1", ver), new SqlParm("p2", TimeVersionLastSet));
         }
 
 

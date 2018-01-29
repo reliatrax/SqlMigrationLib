@@ -64,9 +64,9 @@ namespace SqlMigrationLib.DbTests
                 messages[0].Should().Be("Ran migration 101");
 
                 // Check that the Migrations table was updated (this ensures that othe SetDBVersionQuery is run)
-                Migration[] dbMigrations = db.Query<Migration>("Select * From Migrations").ToArray();
+                MigrationHistory[] dbMigrations = db.Query<MigrationHistory>("Select * From MigrationHistories").ToArray();
 
-                dbMigrations.Select(x => x.MigrationID).Should().BeEquivalentTo(new int[] { 100, 101 });
+                dbMigrations.Select(x => x.MigrationID).Should().BeEquivalentTo(new int[] { 100, -101, 101 });
 
                 dbMigrations.Single(x => x.MigrationID == 101).UpdateUTC.Should().Be(utils.TimeVersionLastSet);
             } 
@@ -170,7 +170,7 @@ namespace SqlMigrationLib.DbTests
         }
 
         [Test]
-        public void TestMigration_ShouldLogAllExecutedSql()
+        public void TestMigration_ShouldLogAllExecutedBatches()
         {
             using (IDbConnection db = new SqlConnection(config.ConnectionString))
             {
@@ -194,14 +194,13 @@ namespace SqlMigrationLib.DbTests
                 runner.BringToVersion(101);
 
                 // Assert
-                utils.ExecutingBatches.Should().HaveCount(4);        // Begin Transaction + 3 batches + Update Version + End Transaction
+                utils.ExecutingBatches.Should().HaveCount(3);        // 3 batches
 
                 utils.ExecutingBatches[0].ExecutedSql.Should().Be("INSERT INTO dbo.Messages(MessageText) VALUES('Batch 1');");
                 utils.ExecutingBatches[1].ExecutedSql.Should().Be("INSERT INTO dbo.Messages(MessageText) VALUES('Batch 2');");
                 utils.ExecutingBatches[2].ExecutedSql.Should().Be("Update dbo.Messages set MessageText = 'updated message'");
-                utils.ExecutingBatches[3].ExecutedSql.Should().StartWithEquivalent("INSERT INTO dbo.Migrations(MigrationID,UpdateUTC) VALUES(@p1,@p2)\nPARAMETERS:\n   p1: 101");
 
-                utils.ExecutingBatches.Select(x => x.BatchNumber).ShouldBeEquivalentTo(new int[] { 1, 1, 2, 1 }, options => options.WithStrictOrdering());
+                utils.ExecutingBatches.Select(x => x.BatchNumber).ShouldBeEquivalentTo(new int[]{ 1, 2, 3 }, options => options.WithStrictOrdering());
             }
         }
     }
