@@ -194,14 +194,14 @@ namespace SqlMigrationLib.DbTests
                 runner.BringToVersion(101);
 
                 // Assert
-                utils.ExecutedBatches.Should().HaveCount(4);        // Begin Transaction + 3 batches + Update Version + End Transaction
+                utils.ExecutingBatches.Should().HaveCount(4);        // Begin Transaction + 3 batches + Update Version + End Transaction
 
-                utils.ExecutedBatches[0].ExecutedSql.Should().Be("INSERT INTO dbo.Messages(MessageText) VALUES('Batch 1');");
-                utils.ExecutedBatches[1].ExecutedSql.Should().Be("INSERT INTO dbo.Messages(MessageText) VALUES('Batch 2');");
-                utils.ExecutedBatches[2].ExecutedSql.Should().Be("Update dbo.Messages set MessageText = 'updated message'");
-                utils.ExecutedBatches[3].ExecutedSql.Should().StartWithEquivalent("INSERT INTO dbo.Migrations(MigrationID,UpdateUTC) VALUES(@p1,@p2)\nPARAMETERS:\n   p1: 101");
+                utils.ExecutingBatches[0].ExecutedSql.Should().Be("INSERT INTO dbo.Messages(MessageText) VALUES('Batch 1');");
+                utils.ExecutingBatches[1].ExecutedSql.Should().Be("INSERT INTO dbo.Messages(MessageText) VALUES('Batch 2');");
+                utils.ExecutingBatches[2].ExecutedSql.Should().Be("Update dbo.Messages set MessageText = 'updated message'");
+                utils.ExecutingBatches[3].ExecutedSql.Should().StartWithEquivalent("INSERT INTO dbo.Migrations(MigrationID,UpdateUTC) VALUES(@p1,@p2)\nPARAMETERS:\n   p1: 101");
 
-                utils.ExecutedBatches.Select(x => x.RowsAffected).ShouldBeEquivalentTo(new int[] { 1, 1, 2, 1 }, options => options.WithStrictOrdering());
+                utils.ExecutingBatches.Select(x => x.BatchNumber).ShouldBeEquivalentTo(new int[] { 1, 1, 2, 1 }, options => options.WithStrictOrdering());
             }
         }
     }

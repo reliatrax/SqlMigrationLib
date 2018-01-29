@@ -117,13 +117,15 @@ namespace SqlMigrationLib
                     return;
                 }
 
-                try { 
-                    // Run the migration!
-                    _migrationUtils.LogInformation("Running Migration {0}", migrationVer);
-                    RunMigration(transaction, sql);
+                try {
+                    // Update the DB version indicatating that we're in progress
+                    TVer inProgressVer = _migrationUtils.GetInProgressVer(migrationVer);
+                    UpdateDBVersion(transaction, inProgressVer);
 
-                    // Update the DB version if required (the migration script itself may do this)
-                    _migrationUtils.LogInformation("Updating Database version to {0}", migrationVer);
+                    // Run the migration!
+                    RunMigration(transaction, migrationVer, sql);
+
+                    // Update the DB version to the final version
                     UpdateDBVersion(transaction, migrationVer);
 
                     _migrationUtils.LogInformation("Commiting transaction");
@@ -131,7 +133,7 @@ namespace SqlMigrationLib
                 }
                 catch (Exception e)
                 {
-                    _migrationUtils.LogError(e, "Exception encountered while running migration {0}: {1}", migrationVer, e.Message);
+                    _migrationUtils.LogError(e, "Exception encountered while running migration {0} on {1}: {2}", migrationVer, _db.Database, e.Message);
 
                     RollbackTransaction(transaction);
 
@@ -159,11 +161,15 @@ namespace SqlMigrationLib
         }
 
 
-        private void RunMigration(IDbTransaction transaction, string sql)
+        private void RunMigration(IDbTransaction transaction, TVer migrationVer, string sql)
         {
             sql = CommentStripper.ProcessSql(sql);  // remove all comments, because they may contain the word "GO" in them which would confuse our splitter
 
             string[] batches = SqlBatchSplitter.SplitBatches(sql);      // split on GO
+
+            _migrationUtils.LogInformation("Running Migration {0} ({1} batches) on {2}.", migrationVer, batches.Length, _db.Database);
+
+            int batchNum = 1;
 
             foreach (string batch in batches)
             {
@@ -171,7 +177,9 @@ namespace SqlMigrationLib
                 string s = batch.Replace("\r\n", "\n");
                 s = Regex.Replace(s, "\n+", "\n");
 
-                Execute(transaction, s);
+                Execute(transaction, batchNum, s);
+
+                ++batchNum;
             }
         }
 
@@ -183,29 +191,26 @@ namespace SqlMigrationLib
             if (query == null)
                 return;
 
-            Execute(transaction, query);
+            string sqlmsg = query.Query + " PARAMETERS: (" + string.Join(", ", query.Parameters.Select(p => $"{p.Name}: {p.Value}")) + ")";
+            sqlmsg = sqlmsg.Trim();       // trimming makes the log messages clearer
+
+            _migrationUtils.LogInformation("Setting {0} Version to {1} with SQL '{2}'", _db.Database, ver, sqlmsg);
+
+            int rowsAffected = _db.DbExecuteNonQuery(query, transaction);
         }
 
         // Execute queries, logging the SQL and rows affected
-        private void Execute(IDbTransaction transaction, string sql)
+        private void Execute(IDbTransaction transaction, int batchNum, string sql)
         {
             sql = sql.Trim();       // trimming makes the log messages clearer
 
             var qp = new SqlQueryWithParams(sql);
 
+            _migrationUtils.LogSqlBatch(batchNum, sql);
+
             int rowsAffected = _db.DbExecuteNonQuery(qp, transaction );
 
-            _migrationUtils.LogSqlBatch(sql, rowsAffected);
-        }
-
-        private void Execute(IDbTransaction transaction, SqlQueryWithParams sql)
-        {
-            int rowsAffected = _db.DbExecuteNonQuery(sql, transaction);
-
-            string logmsg = sql.Query + "\nPARAMETERS:\n" + string.Join("\n", sql.Parameters.Select(p => $"   {p.Name}: {p.Value}"));
-            logmsg = logmsg.Trim();       // trimming makes the log messages clearer
-
-            _migrationUtils.LogSqlBatch(logmsg, rowsAffected);
+            _migrationUtils.LogInformation("Batch {0} exectued successfully on {1}. {2} rows affected.", batchNum, _db.Database, rowsAffected);
         }
     }
 }

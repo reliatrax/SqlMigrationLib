@@ -12,15 +12,15 @@ namespace SqlMigrationLib.DbTests
         public string MigrationSql { get; set; }
     }
 
-    public class ExecutedBatch
+    public class ExecutingBatch
     {
+        public int BatchNumber { get; private set; }
         public string ExecutedSql { get; private set; }
-        public int RowsAffected { get; private set; }
 
-        public ExecutedBatch( string executesSql, int rowsAffected )
+        public ExecutingBatch(int batchNumber, string executesSql )
         {
             ExecutedSql = executesSql;
-            RowsAffected = rowsAffected;
+            BatchNumber = batchNumber;
         }
     }
 
@@ -60,6 +60,7 @@ namespace SqlMigrationLib.DbTests
             return new SqlQueryWithParams(@"INSERT INTO dbo.Migrations(MigrationID,UpdateUTC) VALUES(@p1,@p2)", new SqlParm("p1", ver), new SqlParm("p2", TimeVersionLastSet));
         }
 
+
         // Logging
 
         List<string> informationLog = new List<string>();
@@ -75,12 +76,12 @@ namespace SqlMigrationLib.DbTests
 
         // Log Executed SQL Batches
 
-        List<ExecutedBatch> sqlLog = new List<ExecutedBatch>();
-        public IReadOnlyList<ExecutedBatch> ExecutedBatches => sqlLog.AsReadOnly();
+        List<ExecutingBatch> sqlLog = new List<ExecutingBatch>();
+        public IReadOnlyList<ExecutingBatch> ExecutingBatches => sqlLog.AsReadOnly();
 
-        public void LogSqlBatch(string sql, int rowsAffected)
+        public void LogSqlBatch(int batchNum, string sql)
         {
-            sqlLog.Add(new ExecutedBatch(sql, rowsAffected));
+            sqlLog.Add(new ExecutingBatch(batchNum, sql));
         }
 
         // Log Errors
@@ -90,6 +91,12 @@ namespace SqlMigrationLib.DbTests
         public void LogError(Exception e, string message, params object[] args)
         {
             LastErrorMessage = e.Message;       // "Log" the error message
+        }
+
+        // Returns the special version to use while running the migration
+        public int GetInProgressVer(int migrationVer)
+        {
+            return -migrationVer;
         }
     }
 }

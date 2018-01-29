@@ -12,7 +12,9 @@ namespace SqlMigrationLib
 
         SqlQueryWithParams SetDBVersionQuery(TVer ver);
 
-        void LogSqlBatch(string sql, int rowsAffected);
+        TVer GetInProgressVer(TVer migrationVer);
+
+        void LogSqlBatch(int batchNum, string sql);
 
         void LogInformation(string message, params object[] args);
 
