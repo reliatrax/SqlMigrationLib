@@ -36,10 +36,11 @@ namespace SqlMigrationLib
     // Helper to build / execute DbCommands
     public static class SqlRunner
     {
-        static IDbCommand BuildDbCommand(IDbConnection db, SqlQueryWithParams q)
+        static IDbCommand BuildDbCommand(IDbConnection db, SqlQueryWithParams q, int commandTimeout=30)
         {
             IDbCommand cmd = db.CreateCommand();
             cmd.CommandText = q.Query;
+            cmd.CommandTimeout = commandTimeout;
 
             if (q.Parameters != null)
             {
@@ -55,9 +56,9 @@ namespace SqlMigrationLib
             return cmd;
         }
 
-        public static int DbExecuteNonQuery(this IDbConnection db, SqlQueryWithParams qp, IDbTransaction transaction)
+        public static int DbExecuteNonQuery(this IDbConnection db, SqlQueryWithParams qp, IDbTransaction transaction, int commandTimeout=30)
         {
-            IDbCommand cmd = BuildDbCommand(db, qp);
+            IDbCommand cmd = BuildDbCommand(db, qp, commandTimeout);
 
             if (transaction != null)
                 cmd.Transaction = transaction;

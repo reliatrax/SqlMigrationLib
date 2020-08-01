@@ -1,6 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <Import Project="..\packages\NuGet.Build.Packaging.0.2.2\build\NuGet.Build.Packaging.props" Condition="Exists('..\packages\NuGet.Build.Packaging.0.2.2\build\NuGet.Build.Packaging.props')" />
   <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
@@ -12,25 +11,7 @@
     <AssemblyName>SqlMigrationLib</AssemblyName>
     <TargetFrameworkVersion>v4.5.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
-    <PackageId>SqlMigrationLib</PackageId>
-    <PackageVersion>0.8.0</PackageVersion>
-    <Description>SqlMigrationLib</Description>
-    <Authors>Canyon City Solutions</Authors>
-    <Title>SQL Migration Helper Library</Title>
-    <PackageProjectUrl>https://github.com/reliatrax/SqlMigrationLib</PackageProjectUrl>
-    <Owners>Canyon City Solutions</Owners>
-    <NeutralLanguage>C#</NeutralLanguage>
-    <NuGetPackageImportStamp>
-    </NuGetPackageImportStamp>
-    <Copyright>Canyon City Solutions</Copyright>
     <TargetFrameworkProfile />
-    <PackageReleaseNotes> Fixed error in comment stripper where removing single line comments were also stripping the trailing \n
-
-Remove and don%27t execute empty batches
-
-Better exception handling
-
-Close the DB connection on exit if we found it closed</PackageReleaseNotes>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -72,12 +53,8 @@ Close the DB connection on exit if we found it closed</PackageReleaseNotes>
     <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
-  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
-    <PropertyGroup>
-      <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
-    </PropertyGroup>
-    <Error Condition="!Exists('..\packages\NuGet.Build.Packaging.0.2.2\build\NuGet.Build.Packaging.props')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\NuGet.Build.Packaging.0.2.2\build\NuGet.Build.Packaging.props'))" />
-    <Error Condition="!Exists('..\packages\NuGet.Build.Packaging.0.2.2\build\NuGet.Build.Packaging.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\NuGet.Build.Packaging.0.2.2\build\NuGet.Build.Packaging.targets'))" />
+  <Target Name="AfterBuild" Condition="'$(Configuration)' == 'Release'">
+      <Message Text="### Packing Nuget Package! ###" Importance="high" />
+      <Exec Command="..\..\nuget.exe pack &quot;..\nuget\Package.nuspec&quot; -OutputDirectory ..\nuget"/>
   </Target>
-  <Import Project="..\packages\NuGet.Build.Packaging.0.2.2\build\NuGet.Build.Packaging.targets" Condition="Exists('..\packages\NuGet.Build.Packaging.0.2.2\build\NuGet.Build.Packaging.targets')" />
 </Project>

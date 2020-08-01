@@ -1,0 +1,26 @@
+<?xml version="1.0"?>
+<package >
+  <metadata>
+    <id>SqlMigrationLib</id>
+    <version>0.9.0</version>
+    <authors>Canyon City Solutions</authors>
+    <owners>jhinderks</owners>
+<!-- <licenseUrl>http://LICENSE_URL_HERE_OR_DELETE_THIS_LINE</licenseUrl> -->
+    <projectUrl>https://github.com/reliatrax/SqlMigrationLib</projectUrl>
+<!-- <iconUrl>http://ICON_URL_HERE_OR_DELETE_THIS_LINE</iconUrl> -->
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>SQL Migration Helper Library</description>
+    <releaseNotes>Updated the ISqlMigrationHelper interface</releaseNotes>
+    <copyright>Copyright 2018</copyright>
+    <tags>C# SQL Server Migration</tags>
+    <!--
+    <dependencies>
+      <dependency id="SampleDependency" version="1.0" />
+    </dependencies>
+    -->
+  </metadata>
+  <files>
+    <file src="..\SqlMigrationLib\bin\Release\SqlMigrationLib.dll" target="lib\net452\SqlMigrationLib.dll" />
+    <file src="..\SqlMigrationLib\bin\Release\SqlMigrationLib.pdb" target="lib\net452\SqlMigrationLib.pdb" />
+  </files>
+</package>

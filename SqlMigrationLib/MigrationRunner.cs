@@ -208,7 +208,10 @@ namespace SqlMigrationLib
 
             _migrationUtils.LogSqlBatch(batchNum, sql);
 
-            int rowsAffected = _db.DbExecuteNonQuery(qp, transaction );
+            // Some updates take a very long time.  Would like to be able to specify this in the SQL file itself (maybe in a comment?)
+            int commandTimeout = 90;
+
+            int rowsAffected = _db.DbExecuteNonQuery(qp, transaction, commandTimeout );
 
             _migrationUtils.LogInformation("Batch {0} exectued successfully on {1}. {2} rows affected.", batchNum, _db.Database, rowsAffected);
         }
